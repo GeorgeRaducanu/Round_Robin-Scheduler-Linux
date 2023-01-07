@@ -1,0 +1,61 @@
+Copyright 2022-2023 Raducanu George-Cristian 321CA
+-----------------------------------------------------------------------------
+Tema 2 Sisteme de operare
+-----------------------------------------------------------------------------
+Scheduler preemptiv de programe bazat pe algoritmul Round Robin
+-----------------------------------------------------------------------------
+
+Scheduler-ul implementeaza functiile din fisierul header.
+
+Programul are o structura pentru un thread si inca una pentru planificatorul
+global. Planificatorul contine o coada cu prioritati, si un vector in care
+se contorizeaza toate thread-urile, chiar daca ele au iesit din coada, pentru
+a le putea elibera la final in functia de so_end si a nu avea leak-uri.
+
+Coada cu prioritati, are o implementare mai rudimentara, dar care s-a
+dovedit a fi fiabila si a trece din teste. Coada cu prioritati este de fapt
+un vector, de fiecare data noul thread se insereaza la final, iar pentru a 
+tine cont si de prioritatea lui se realizeaza o sortare, se pune in pozitia
+corespunzatoare. Sortarea este cea mai simpla posibila, utilizand 2 for-uri.
+Am decis sa abordez astfel "coada cu prioritati", si nu altfel - eventual o
+coada pentru fiecare prioritate pentru a fi de usor de gestionat memoria.
+Scoatera thread-ului corespunzator se realizeaza tot de la coada. Practic,
+am un singur punct de acces in aceasta structura.
+
+Functia de scheduler_call face update-ul scheduler-ului, tinand cont atat de 
+thread-ul curent, cat si de cel urmator. Astfel, scheduler-ul este actualizat
+de fiecare data, in special coada si elementul curent, folosindu-ma de
+operatiile descrise anterior.
+
+Functia so_init doar initializeaza scheduler-ul. Mare parte din campuri sunt
+nule datorita declararii globale a planificatorului, spre exemplu
+dimensiunile initiale ale cozii si vectorului sunt 0.
+
+Functia helper este echivalenta cu start_routine din linux, este o implementare
+proprie, fiind corespunzatoare functiilor noastre.
+
+Functia so_fork verifica mai intai corectitudinea parametrilor primiti, apoi
+alocam dinamic si initializam noul thread, si apoi am creat tid-ul.
+Inserez atat in coada cat si in vectorul meu noul thread, iar pentru a mentine
+coada cu prioritati o sortez, asa cum am explicat. In final daca
+avem un element curent, il punem pe "primul" din coada pe starea de ready
+si rulam cu functia so_exec, altfel, pur si simplu chemam functia de
+actualizare a cozii, iar thread-ul curent ia starea de running.
+
+La functia so_wait daca portul primit nu e valid returnez -1, altfel il fac pe
+thread-ul curent waiting pe portul primit ca parametru.
+
+La functia so_signal, verific validitatea portului. Daca este valid voi numara
+cate procese sunt in starea de waiting pe portul io. Daca il gasim
+il adaugam in coada, si bineinteles sortam :)
+Desi ineficienta, am considerat ca este o solutie decenta, neffind eficienta
+scopul acestei teme ci insusirea anumitor cunostiinte.
+
+Pentru functia so_exec folosita in fork se scade cuanta thread-ului curent, se
+apeleaza update-urul si se face sem_wait pe fostul thread curent (inainte de
+actualizare).
+
+Functia so_end da join la toate thread-urile ramase, si dealoca toate
+variabilele dinamice.
+
+FEEDBACK: Desi tema nu ia maxim, am invatat multe din ea.
